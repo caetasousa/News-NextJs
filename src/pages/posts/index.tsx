@@ -1,10 +1,25 @@
-import styles from './styles.module.scss'
-import Head from 'next/head';
-import Prismic from '@prismicio/client'
 import { GetStaticProps } from 'next';
+import Head from 'next/head';
+import Link from 'next/link';
+import Prismic from '@prismicio/client'
+import { RichText } from 'prismic-dom';
+
 import { getPrismicClient } from '../../services/prismic';
 
-export default function Posts() {
+import styles from './styles.module.scss'
+
+type Post = {
+    slug: string;
+    title: string;
+    excerpt: string;
+    updatedAt: string;
+}
+
+interface PostsProps {
+    posts: Post[]
+}
+
+export default function Posts({ posts }: PostsProps) {
     return (
         <>
             <Head>
@@ -13,11 +28,13 @@ export default function Posts() {
 
             <main className={styles.container}>
                 <div className={styles.posts}>
-                    <a>
-                        <time>12 de marco 2021</time>
-                        <strong>Api</strong>
-                        <p>asdfasdf asdfasdf asdf asdf asdf asdf asd asd ada sdf asf </p>
+                    { posts.map(post => (
+                        <a key={post.slug} href="#">
+                        <time>{post.updatedAt}</time>
+                        <strong>{post.title}</strong>
+                        <p>{post.excerpt}</p>
                     </a>
+                    ))}
                 </div>
             </main>
         </>
@@ -34,10 +51,24 @@ export const getStaticProps: GetStaticProps = async () => {
         pageSize: 100,
     })
 
-    console.log(response)
+    const posts = response.results.map(post => {
+        return {
+            slug: post.uid,
+            title: RichText.asText(post.data.title),
+            excerpt: post.data.content.find(content => content.type === 'paragraph')?.text ?? '',
+            updatedAt: new Date(post.last_publication_date).toLocaleDateString('pt-BR',{
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            })
+        }
+    });
+
+    console.log(JSON.stringify(response, null, 2))
 
     return {
         props: {
+            posts
         }
     }
 }
